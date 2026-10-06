@@ -1,0 +1,11 @@
+AddressID,CustomerID,StreetAddress,Suburb,State,Postcode
+1,1,123 Palm St,Darwin City,NT,0800
+2,2,456 Casuarina Dr,Casuarina,NT,0810
+3,3,789 Mitchell St,Darwin City,NT,0800
+4,4,101 Smith St,Darwin City,NT,0800
+5,5,202 Trower Rd,Nightcliff,NT,0810
+6,6,303 McMillans Rd,Jingili,NT,0810
+7,7,404 Vanderlin Dr,Karama,NT,0812
+8,8,505 Roystonea Ave,Palmerston,NT,0830
+9,9,606 Stuart Hwy,Berrimah,NT,0828
+10,10,707 Tiger Brennan Dr,Winnellie,NT,0820

@@ -1,0 +1,79 @@
+// PRT563 Assignment 3 - Four Cypher Use Cases
+// Student: Saqib Zia (S399396)
+// Run each query separately after import.txt and live_verification.txt pass.
+
+// ============================================================
+// Q1 - AVAILABLE MID-RANGE VARIANTS
+// ============================================================
+MATCH (v:MenuVariant)
+WHERE v.currentPrice BETWEEN 10 AND 20
+  AND v.crustType IS NOT NULL
+  AND v.availabilityStatus = 'Available'
+RETURN v.variantId AS VariantID,
+       v.menuItemId AS MenuItemID,
+       v.size AS Size,
+       v.crustType AS CrustType,
+       v.currentPrice AS CurrentPrice,
+       v.availabilityStatus AS Status
+ORDER BY v.currentPrice;
+
+// ============================================================
+// Q2 - CUSTOMER ORDER HISTORY + DESTINATION
+// ============================================================
+MATCH (c:Customer)-[:PLACES]->(o:Order)
+OPTIONAL MATCH (o:DeliveryOrder)-[:FULFILLED_BY]->(d:Delivery)<-[:DESTINATION_FOR]-(a:Address)
+RETURN c.firstName + ' ' + c.lastName AS Customer,
+       o.orderId AS OrderID,
+       CASE
+           WHEN o:PickupOrder THEN 'Pickup'
+           WHEN o:DeliveryOrder THEN 'Delivery'
+           ELSE 'Unclassified'
+       END AS FulfilmentType,
+       o.orderStatus AS Status,
+       coalesce(a.streetAddress + ', ' + a.suburb,
+                'Pickup - no delivery address') AS Destination
+ORDER BY o.orderId;
+
+// ============================================================
+// Q3 - STORE AVERAGE VS PORTFOLIO AVERAGE
+// ============================================================
+MATCH (s:Store)-[:PROCESSES]->(o:Order)-[:SETTLED_BY]->(p:Payment)
+WHERE p.paymentStatus = 'Paid'
+WITH s, avg(p.paymentAmount) AS storeAverage
+CALL {
+    MATCH (p2:Payment)
+    WHERE p2.paymentStatus = 'Paid'
+    RETURN avg(p2.paymentAmount) AS globalAverage
+}
+WITH s, storeAverage, globalAverage
+WHERE storeAverage > globalAverage
+RETURN s.storeName AS Store,
+       round(storeAverage, 2) AS AvgOrderValue,
+       round(globalAverage, 3) AS GlobalAvgOrderValue
+ORDER BY AvgOrderValue DESC;
+
+// ============================================================
+// Q4 - ABOVE-MEDIAN CUSTOMERS USING BOTH FULFILMENT MODES
+// ============================================================
+MATCH (c:Customer)-[:PLACES]->(o:Order)-[line:CONTAINS]->(:MenuVariant)
+WITH c,
+     sum(line.quantity * line.unitPrice) AS TotalSpend,
+     count(DISTINCT CASE WHEN o:PickupOrder THEN o.orderId END) AS PickupOrders,
+     count(DISTINCT CASE WHEN o:DeliveryOrder THEN o.orderId END) AS DeliveryOrders
+WITH collect({customer: c,
+              spend: TotalSpend,
+              pickup: PickupOrders,
+              delivery: DeliveryOrders}) AS rows,
+     percentileCont(TotalSpend, 0.5) AS medianSpend
+UNWIND rows AS r
+WITH r, medianSpend
+WHERE r.pickup > 0
+  AND r.delivery > 0
+  AND r.spend > medianSpend
+RETURN r.customer.customerId AS CustomerID,
+       r.customer.firstName + ' ' + r.customer.lastName AS Customer,
+       r.pickup AS PickupOrders,
+       r.delivery AS DeliveryOrders,
+       round(r.spend, 2) AS TotalSpend,
+       round(medianSpend, 2) AS PortfolioMedianSpend
+ORDER BY TotalSpend DESC;

@@ -1,0 +1,59 @@
+// PRT563 Assignment 3 - live_verification.txt
+// Run after import.txt. Values below come from the exact final-state Assignment 2 CSV population.
+
+RETURN version() AS Neo4jVersion;
+RETURN gds.version() AS GDSVersion;
+SHOW CONSTRAINTS;
+SHOW INDEXES;
+
+// Node counts
+MATCH (n:Customer) RETURN count(n) AS CustomerNodes;
+MATCH (n:Address) RETURN count(n) AS AddressNodes;
+MATCH (n:Store) RETURN count(n) AS StoreNodes;
+MATCH (n:Driver) RETURN count(n) AS DriverNodes;
+MATCH (n:MenuCategory) RETURN count(n) AS MenuCategoryNodes;
+MATCH (n:MenuItem) RETURN count(n) AS MenuItemNodes;
+MATCH (n:MenuVariant) RETURN count(n) AS MenuVariantNodes;
+MATCH (n:Order) RETURN count(n) AS OrderNodes;
+MATCH (n:Payment) RETURN count(n) AS PaymentNodes;
+MATCH (n:Delivery) RETURN count(n) AS DeliveryNodes;
+
+// Relationship counts
+MATCH ()-[r]->() RETURN count(r) AS TotalRelationships;
+MATCH ()-[r:CONTAINS]->() RETURN count(r) AS ContainsRelationships;
+
+// Subtype checks
+MATCH (o:Order)
+WHERE o:PickupOrder AND o:DeliveryOrder
+RETURN count(o) AS OrdersWithBothSubtypeLabels;
+
+MATCH (o:Order:PickupOrder)
+WHERE (o)-[:FULFILLED_BY]->(:Delivery)
+RETURN count(o) AS PickupOrdersWithFulfilment;
+
+MATCH (o:Order:DeliveryOrder)
+WHERE NOT (o)-[:FULFILLED_BY]->(:Delivery)
+RETURN count(o) AS DeliveryOrdersWithoutFulfilment;
+
+// Order-line checks
+MATCH (o:Order)-[r:CONTAINS]->()
+WHERE r.quantity <= 0 OR r.unitPrice IS NULL
+RETURN count(r) AS InvalidContainsRows;
+
+MATCH (o:Order)-[r:CONTAINS]->()
+WITH o.orderId AS OrderID, r.lineNumber AS LineNumber, count(*) AS copies
+WHERE copies > 1
+RETURN count(*) AS DuplicateLineNumbers;
+
+// Historical transaction integrity: aggregated line total must equal payment amount.
+MATCH (o:Order)-[r:CONTAINS]->(),
+      (o)-[:SETTLED_BY]->(p:Payment)
+WITH o, sum(r.quantity * r.unitPrice) AS orderTotal, p.paymentAmount AS paymentAmount
+WHERE abs(orderTotal - paymentAmount) > 0.0001
+RETURN o.orderId AS OrderID, orderTotal, paymentAmount;
+
+// LoyaltyPoints final-state check from Assignment 2 ALTER/UPDATE demonstration.
+MATCH (c:Customer)
+RETURN min(c.loyaltyPoints) AS MinLoyaltyPoints,
+       max(c.loyaltyPoints) AS MaxLoyaltyPoints,
+       count(CASE WHEN c.loyaltyPoints = 150 THEN 1 END) AS CustomersWith150Points;

@@ -1,0 +1,11 @@
+VariantID,MenuItemID,Size,CrustType,CurrentPrice,AvailabilityStatus
+1,1,Large,Classic Crust,12,Available
+2,2,Large,Thin Crust,14,Available
+3,3,Large,Cheesy Crust,18.5,Available
+4,4,Extra Large,Classic Crust,21,Available
+5,5,Large,Classic Crust,10,Available
+6,6,Medium,Thin Crust,15,Available
+7,7,Standard,,4.5,Available
+8,8,Standard,,5.5,Available
+9,9,1.25L,,4.95,Available
+10,10,Single,,1,Available

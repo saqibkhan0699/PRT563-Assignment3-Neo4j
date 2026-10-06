@@ -1,0 +1,221 @@
+// PRT563 Assignment 3 - gds_algorithms.txt
+// Run each section in order after import.txt and live_verification.txt.
+// Record Neo4j/GDS version before interpreting live results.
+
+RETURN version() AS Neo4jVersion;
+RETURN gds.version() AS GDSVersion;
+
+// ============================================================
+// A. CENTRALITY - four complementary measures
+// ============================================================
+CALL gds.graph.project(
+  'operationalCentrality',
+  ['Customer','Address','Store','Driver','MenuCategory','MenuItem','MenuVariant','Order','Payment','Delivery'],
+  {
+    HAS_ADDRESS:{orientation:'UNDIRECTED'},
+    PLACES:{orientation:'UNDIRECTED'},
+    PROCESSES:{orientation:'UNDIRECTED'},
+    ASSOCIATED_WITH:{orientation:'UNDIRECTED'},
+    CLASSIFIES:{orientation:'UNDIRECTED'},
+    HAS_VARIANT:{orientation:'UNDIRECTED'},
+    CONTAINS:{orientation:'UNDIRECTED'},
+    SETTLED_BY:{orientation:'UNDIRECTED'},
+    FULFILLED_BY:{orientation:'UNDIRECTED'},
+    PERFORMS:{orientation:'UNDIRECTED'},
+    DESTINATION_FOR:{orientation:'UNDIRECTED'}
+  }
+) YIELD graphName,nodeCount,relationshipCount
+RETURN graphName,nodeCount,relationshipCount;
+
+CALL gds.degree.stream('operationalCentrality')
+YIELD nodeId,score
+RETURN labels(gds.util.asNode(nodeId)) AS Labels,
+       coalesce(gds.util.asNode(nodeId).orderId,
+                gds.util.asNode(nodeId).variantId,
+                gds.util.asNode(nodeId).menuItemId,
+                gds.util.asNode(nodeId).categoryId,
+                gds.util.asNode(nodeId).customerId,
+                gds.util.asNode(nodeId).storeId,
+                gds.util.asNode(nodeId).driverId,
+                gds.util.asNode(nodeId).addressId,
+                gds.util.asNode(nodeId).paymentId,
+                gds.util.asNode(nodeId).deliveryId) AS BusinessID,
+       score
+ORDER BY score DESC, BusinessID
+LIMIT 15;
+
+CALL gds.betweenness.stream('operationalCentrality')
+YIELD nodeId,score
+RETURN labels(gds.util.asNode(nodeId)) AS Labels,
+       coalesce(gds.util.asNode(nodeId).orderId,
+                gds.util.asNode(nodeId).variantId,
+                gds.util.asNode(nodeId).menuItemId,
+                gds.util.asNode(nodeId).categoryId,
+                gds.util.asNode(nodeId).customerId,
+                gds.util.asNode(nodeId).storeId,
+                gds.util.asNode(nodeId).driverId,
+                gds.util.asNode(nodeId).addressId,
+                gds.util.asNode(nodeId).paymentId,
+                gds.util.asNode(nodeId).deliveryId) AS BusinessID,
+       score
+ORDER BY score DESC, BusinessID
+LIMIT 15;
+
+CALL gds.closeness.stream('operationalCentrality')
+YIELD nodeId,score
+RETURN labels(gds.util.asNode(nodeId)) AS Labels,
+       coalesce(gds.util.asNode(nodeId).orderId,
+                gds.util.asNode(nodeId).variantId,
+                gds.util.asNode(nodeId).menuItemId,
+                gds.util.asNode(nodeId).categoryId,
+                gds.util.asNode(nodeId).customerId,
+                gds.util.asNode(nodeId).storeId,
+                gds.util.asNode(nodeId).driverId,
+                gds.util.asNode(nodeId).addressId,
+                gds.util.asNode(nodeId).paymentId,
+                gds.util.asNode(nodeId).deliveryId) AS BusinessID,
+       score
+ORDER BY score DESC, BusinessID
+LIMIT 15;
+
+CALL gds.pageRank.stream('operationalCentrality',{dampingFactor:0.85})
+YIELD nodeId,score
+RETURN labels(gds.util.asNode(nodeId)) AS Labels,
+       coalesce(gds.util.asNode(nodeId).orderId,
+                gds.util.asNode(nodeId).variantId,
+                gds.util.asNode(nodeId).menuItemId,
+                gds.util.asNode(nodeId).categoryId,
+                gds.util.asNode(nodeId).customerId,
+                gds.util.asNode(nodeId).storeId,
+                gds.util.asNode(nodeId).driverId,
+                gds.util.asNode(nodeId).addressId,
+                gds.util.asNode(nodeId).paymentId,
+                gds.util.asNode(nodeId).deliveryId) AS BusinessID,
+       score
+ORDER BY score DESC, BusinessID
+LIMIT 15;
+
+CALL gds.graph.drop('operationalCentrality');
+
+// ============================================================
+// B. NODE SIMILARITY - JACCARD on purchased-category sets
+// ============================================================
+LOAD CSV WITH HEADERS FROM 'file:///categories.csv' AS row
+MERGE (pc:PurchaseCategory {categoryId:toInteger(row.CategoryID)})
+SET pc.categoryName=row.CategoryName;
+
+MATCH (c:Customer)-[:PLACES]->(:Order)-[:CONTAINS]->(:MenuVariant)
+      <-[:HAS_VARIANT]-(:MenuItem)<-[:CLASSIFIES]-(cat:MenuCategory)
+WITH DISTINCT c,cat
+MATCH (pc:PurchaseCategory {categoryId:cat.categoryId})
+MERGE (c)-[:PURCHASED_CATEGORY]->(pc);
+
+CALL gds.graph.project(
+  'customerCategorySimilarity',
+  ['Customer','PurchaseCategory'],
+  {PURCHASED_CATEGORY:{orientation:'UNDIRECTED'}}
+) YIELD graphName,nodeCount,relationshipCount
+RETURN graphName,nodeCount,relationshipCount;
+
+CALL gds.nodeSimilarity.stream('customerCategorySimilarity',{
+  topK:3,
+  similarityMetric:'JACCARD'
+})
+YIELD node1,node2,similarity
+WITH gds.util.asNode(node1) AS n1,gds.util.asNode(node2) AS n2,similarity
+WHERE n1:Customer AND n2:Customer
+RETURN n1.customerId AS Customer1,n2.customerId AS Customer2,similarity
+ORDER BY similarity DESC,Customer1,Customer2;
+
+CALL gds.graph.drop('customerCategorySimilarity');
+
+// ============================================================
+// C. FILTERED NODE SIMILARITY - OVERLAP on category + status features
+// ============================================================
+MATCH (c:Customer)-[:PLACES]->(:Order)-[:CONTAINS]->(:MenuVariant)
+      <-[:HAS_VARIANT]-(:MenuItem)<-[:CLASSIFIES]-(cat:MenuCategory)
+WITH DISTINCT c,'CATEGORY:' + toString(cat.categoryId) AS key,
+     'Category' AS featureType,cat.categoryName AS featureValue
+MERGE (f:AffinityFeature {featureKey:key})
+SET f.featureType=featureType,f.featureValue=featureValue
+MERGE (c)-[:HAS_AFFINITY_FEATURE]->(f);
+
+MATCH (c:Customer)-[:PLACES]->(o:Order)
+WITH DISTINCT c,'STATUS:' + o.orderStatus AS key,
+     'OrderStatus' AS featureType,o.orderStatus AS featureValue
+MERGE (f:AffinityFeature {featureKey:key})
+SET f.featureType=featureType,f.featureValue=featureValue
+MERGE (c)-[:HAS_AFFINITY_FEATURE]->(f);
+
+CALL gds.graph.project(
+  'customerAffinitySimilarity',
+  ['Customer','AffinityFeature'],
+  {HAS_AFFINITY_FEATURE:{orientation:'UNDIRECTED'}}
+) YIELD graphName,nodeCount,relationshipCount
+RETURN graphName,nodeCount,relationshipCount;
+
+CALL gds.nodeSimilarity.filtered.stream('customerAffinitySimilarity',{
+  topK:3,
+  sourceNodeFilter:'Customer',
+  targetNodeFilter:'Customer',
+  similarityMetric:'OVERLAP'
+})
+YIELD node1,node2,similarity
+RETURN gds.util.asNode(node1).customerId AS Customer1,
+       gds.util.asNode(node2).customerId AS Customer2,
+       similarity
+ORDER BY similarity DESC,Customer1,Customer2;
+
+CALL gds.graph.drop('customerAffinitySimilarity');
+
+// ============================================================
+// D. KNN - COSINE on 14-dimensional customer behaviourVector
+//     10 category spend values + 4 order-status counts
+// ============================================================
+MATCH (c:Customer)-[:PLACES]->(o:Order)-[line:CONTAINS]->(:MenuVariant)
+      <-[:HAS_VARIANT]-(m:MenuItem)<-[:CLASSIFIES]-(cat:MenuCategory)
+WITH c,
+     sum(CASE WHEN cat.categoryId=1 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat1,
+     sum(CASE WHEN cat.categoryId=2 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat2,
+     sum(CASE WHEN cat.categoryId=3 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat3,
+     sum(CASE WHEN cat.categoryId=4 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat4,
+     sum(CASE WHEN cat.categoryId=5 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat5,
+     sum(CASE WHEN cat.categoryId=6 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat6,
+     sum(CASE WHEN cat.categoryId=7 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat7,
+     sum(CASE WHEN cat.categoryId=8 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat8,
+     sum(CASE WHEN cat.categoryId=9 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat9,
+     sum(CASE WHEN cat.categoryId=10 THEN line.quantity*line.unitPrice ELSE 0 END) AS cat10
+OPTIONAL MATCH (c)-[:PLACES]->(o2:Order)
+WITH c,cat1,cat2,cat3,cat4,cat5,cat6,cat7,cat8,cat9,cat10,
+     sum(CASE WHEN o2.orderStatus='Completed' THEN 1 ELSE 0 END) AS completed,
+     sum(CASE WHEN o2.orderStatus='Preparing' THEN 1 ELSE 0 END) AS preparing,
+     sum(CASE WHEN o2.orderStatus='Ready for Pickup' THEN 1 ELSE 0 END) AS readyForPickup,
+     sum(CASE WHEN o2.orderStatus='Out for Delivery' THEN 1 ELSE 0 END) AS outForDelivery
+SET c.behaviourVector=[toFloat(cat1),toFloat(cat2),toFloat(cat3),toFloat(cat4),
+                       toFloat(cat5),toFloat(cat6),toFloat(cat7),toFloat(cat8),
+                       toFloat(cat9),toFloat(cat10),
+                       toFloat(completed),toFloat(preparing),
+                       toFloat(readyForPickup),toFloat(outForDelivery)];
+
+CALL gds.graph.project(
+  'customerSpendKNN',
+  {Customer:{properties:'behaviourVector'}},
+  []
+) YIELD graphName,nodeCount,relationshipCount
+RETURN graphName,nodeCount,relationshipCount;
+
+CALL gds.knn.stream('customerSpendKNN',{
+  topK:3,
+  nodeProperties:{behaviourVector:'COSINE'},
+  randomSeed:42,
+  concurrency:1,
+  sampleRate:1.0,
+  deltaThreshold:0.0
+})
+YIELD node1,node2,similarity
+RETURN gds.util.asNode(node1).customerId AS Customer1,
+       gds.util.asNode(node2).customerId AS Customer2,
+       similarity
+ORDER BY similarity DESC,Customer1,Customer2;
+
+CALL gds.graph.drop('customerSpendKNN');

@@ -1,0 +1,11 @@
+DriverID,StoreID,FirstName,LastName,Phone,DriverStatus
+1,1,Tom,Hardy,0412000001,Available
+2,2,Emma,Stone,0412000002,Available
+3,3,Chris,Evans,0412000003,On Delivery
+4,4,Scarlett,Johansson,0412000004,Available
+5,5,Mark,Ruffalo,0412000005,Off Duty
+6,6,Jeremy,Renner,0412000006,Available
+7,7,Paul,Rudd,0412000007,On Delivery
+8,8,Brie,Larson,0412000008,Available
+9,9,Chadwick,Boseman,0412000009,Available
+10,10,Don,Cheadle,0412000010,Off Duty

@@ -1,0 +1,19 @@
+PRT563 Assignment 3 — GitHub Upload Contents
+Student: Saqib Zia (S399396)
+
+Upload everything in this folder to the new GitHub repository.
+
+ROOT FILES
+- README.md
+- import.txt
+- queries.txt
+- gds_algorithms.txt
+- live_verification.txt
+- FINAL_CHECKLIST.md
+- FILES_TO_UPLOAD.txt
+
+FOLDERS
+- csv/ (all 13 CSV files)
+- source/ (Assignment2_SQL_source.sql)
+
+Do not upload Neo4j database files, passwords, GitHub tokens or other secrets.

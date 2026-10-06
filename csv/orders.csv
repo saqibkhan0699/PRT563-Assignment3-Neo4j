@@ -1,0 +1,21 @@
+OrderID,CustomerID,StoreID,OrderDateTime,OrderStatus
+1,1,1,2026-09-04 18:05:00,Completed
+2,2,2,2026-09-04 18:10:00,Completed
+3,3,3,2026-09-04 18:15:00,Preparing
+4,4,4,2026-09-04 18:20:00,Completed
+5,5,5,2026-09-04 18:25:00,Completed
+6,6,6,2026-09-04 18:30:00,Ready for Pickup
+7,7,7,2026-09-04 18:35:00,Completed
+8,8,8,2026-09-04 18:40:00,Completed
+9,9,9,2026-09-04 18:45:00,Completed
+10,10,10,2026-09-04 18:50:00,Completed
+11,1,1,2026-09-04 19:00:00,Completed
+12,2,2,2026-09-04 19:05:00,Completed
+13,3,3,2026-09-04 19:10:00,Out for Delivery
+14,4,4,2026-09-04 19:15:00,Completed
+15,5,5,2026-09-04 19:20:00,Completed
+16,6,6,2026-09-04 19:25:00,Completed
+17,7,7,2026-09-04 19:30:00,Completed
+18,8,8,2026-09-04 19:35:00,Out for Delivery
+19,9,9,2026-09-04 19:40:00,Completed
+20,10,10,2026-09-04 19:45:00,Completed

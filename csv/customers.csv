@@ -1,0 +1,11 @@
+CustomerID,FirstName,LastName,Email,Phone,LoyaltyPoints
+1,Alice,Smith,alice@email.com,0400111221,150
+2,Bob,Jones,bob@email.com,0400111222,150
+3,Charlie,Brown,charlie@email.com,0400111223,150
+4,Diana,Prince,diana@email.com,0400111224,0
+5,Ethan,Hunt,ethan@email.com,0400111225,0
+6,Fiona,Gallagher,fiona@email.com,0400111226,0
+7,George,Costanza,george@email.com,0400111227,0
+8,Hannah,Abbott,hannah@email.com,0400111228,0
+9,Ian,Malcolm,ian@email.com,0400111229,0
+10,Julia,Child,julia@email.com,0400111230,0

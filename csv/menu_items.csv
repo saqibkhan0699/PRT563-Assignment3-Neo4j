@@ -1,0 +1,11 @@
+MenuItemID,CategoryID,ItemName,Description,AvailabilityStatus
+1,1,Margherita,Classic cheese and tomato,Available
+2,1,Pepperoni,Double pepperoni and cheese,Available
+3,2,BBQ Meatlovers,"Bacon, beef, ham, sausage",Available
+4,2,Supreme,Everything on it,Available
+5,3,Hawaiian,Ham and pineapple,Available
+6,4,Vegan Margherita,Dairy-free cheese,Available
+7,5,Garlic Bread,Oven-baked garlic baguette,Available
+8,6,Choc Lava Cake,Warm chocolate center,Available
+9,7,Coca-Cola 1.25L,Classic soda,Available
+10,8,Garlic Aioli Dip,Creamy garlic sauce,Available
